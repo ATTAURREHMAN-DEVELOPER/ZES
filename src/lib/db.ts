@@ -1,4 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { supabase } from './supabase';
 
 interface Product {
   id: string;
@@ -116,6 +117,24 @@ export async function getDB() {
 
 // Product operations
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt'>) {
+  // Supabase branch
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        name: product.name,
+        category: product.category,
+        unit: product.unit,
+        price_per_unit: product.pricePerUnit,
+        cost_per_unit: product.costPerUnit ?? null,
+        stock: product.stock,
+        watts: product.watts ?? null,
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data!.id as string;
+  }
   if (window.api) {
     return window.api.invoke('db:addProduct', product);
   }
@@ -126,6 +145,22 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt'>) {
 }
 
 export async function updateProduct(id: string, updates: Partial<Product>) {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        name: updates.name,
+        category: updates.category,
+        unit: updates.unit,
+        price_per_unit: updates.pricePerUnit,
+        cost_per_unit: updates.costPerUnit,
+        stock: updates.stock,
+        watts: updates.watts,
+      })
+      .eq('id', id);
+    if (error) throw error;
+    return;
+  }
   if (window.api) {
     await window.api.invoke('db:updateProduct', id, updates);
     return;
@@ -137,6 +172,11 @@ export async function updateProduct(id: string, updates: Partial<Product>) {
 }
 
 export async function deleteProduct(id: string) {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw error;
+    return;
+  }
   if (window.api) {
     await window.api.invoke('db:deleteProduct', id);
     return;
@@ -146,6 +186,24 @@ export async function deleteProduct(id: string) {
 }
 
 export async function getAllProducts() {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      unit: p.unit,
+      pricePerUnit: Number(p.price_per_unit),
+      costPerUnit: p.cost_per_unit != null ? Number(p.cost_per_unit) : undefined,
+      stock: Number(p.stock),
+      watts: p.watts ?? undefined,
+      createdAt: new Date(p.created_at).getTime(),
+    })) as Product[];
+  }
   if (window.api) {
     return window.api.invoke('db:getAllProducts');
   }
@@ -160,6 +218,20 @@ export async function getProductsByCategory(category: string) {
 
 // Customer operations
 export async function addCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'totalDue'>) {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { data, error } = await supabase
+      .from('customers')
+      .insert({
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email ?? null,
+        address: customer.address ?? null,
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data!.id as string;
+  }
   if (window.api) {
     return window.api.invoke('db:addCustomer', customer);
   }
@@ -170,6 +242,20 @@ export async function addCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 
 }
 
 export async function updateCustomer(id: string, updates: Partial<Customer>) {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { error } = await supabase
+      .from('customers')
+      .update({
+        name: updates.name,
+        phone: updates.phone,
+        email: updates.email,
+        address: updates.address,
+        total_due: updates.totalDue,
+      })
+      .eq('id', id);
+    if (error) throw error;
+    return;
+  }
   if (window.api) {
     await window.api.invoke('db:updateCustomer', id, updates);
     return;
@@ -181,6 +267,22 @@ export async function updateCustomer(id: string, updates: Partial<Customer>) {
 }
 
 export async function getAllCustomers() {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      email: c.email ?? undefined,
+      address: c.address ?? undefined,
+      totalDue: Number(c.total_due ?? 0),
+      createdAt: new Date(c.created_at).getTime(),
+    })) as Customer[];
+  }
   if (window.api) {
     return window.api.invoke('db:getAllCustomers');
   }
@@ -189,12 +291,48 @@ export async function getAllCustomers() {
 }
 
 export async function getCustomerByPhone(phone: string) {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('phone', phone)
+      .maybeSingle();
+    if (error) throw error;
+    return data as any;
+  }
   const db = await getDB();
   return db.getFromIndex('customers', 'by-phone', phone);
 }
 
 // Invoice operations
 export async function createInvoice(invoice: Omit<Invoice, 'id' | 'createdAt'>) {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const payload: any = {
+      invoiceNumber: invoice.invoiceNumber,
+      customerId: invoice.customerId ?? '',
+      customerName: invoice.customerName,
+      customerPhone: invoice.customerPhone ?? '',
+      items: invoice.items.map((it) => ({
+        productId: it.productId,
+        productName: it.productName,
+        quantity: it.quantity,
+        unit: it.unit,
+        pricePerUnit: it.pricePerUnit,
+        costPerUnit: it.costPerUnit ?? null,
+        total: it.total,
+      })),
+      subtotal: invoice.subtotal,
+      tax: invoice.tax,
+      total: invoice.total,
+      paid: invoice.paid,
+      due: invoice.due,
+      paymentMethod: invoice.paymentMethod,
+      status: invoice.status,
+    };
+    const { data, error } = await supabase.rpc('create_invoice_rpc', { inv: payload });
+    if (error) throw error;
+    return data as string;
+  }
   if (window.api) {
     return window.api.invoke('db:createInvoice', invoice);
   }
@@ -218,6 +356,38 @@ export async function createInvoice(invoice: Omit<Invoice, 'id' | 'createdAt'>) 
 }
 
 export async function getAllInvoices() {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*, invoice_items(*)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((inv: any) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoice_number,
+      customerId: inv.customer_id ?? undefined,
+      customerName: inv.customer_name,
+      items: (inv.invoice_items ?? []).map((it: any) => ({
+        productId: it.product_id,
+        productName: it.product_name,
+        quantity: it.quantity,
+        unit: it.unit,
+        pricePerUnit: Number(it.price_per_unit),
+        costPerUnit: it.cost_per_unit != null ? Number(it.cost_per_unit) : undefined,
+        total: Number(it.total),
+      })),
+      subtotal: Number(inv.subtotal),
+      tax: Number(inv.tax),
+      total: Number(inv.total),
+      paid: Number(inv.paid),
+      due: Number(inv.due),
+      paymentMethod: inv.payment_method,
+      status: inv.status,
+      createdAt: new Date(inv.created_at).getTime(),
+      createdBy: inv.created_by,
+      customerPhone: inv.customer_phone ?? undefined,
+    })) as Invoice[];
+  }
   if (window.api) {
     return window.api.invoke('db:getAllInvoices');
   }
@@ -231,6 +401,39 @@ export async function getInvoicesByCustomer(customerId: string) {
 }
 
 export async function getInvoicesByStatus(status: 'paid' | 'partial' | 'unpaid') {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*, invoice_items(*)')
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((inv: any) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoice_number,
+      customerId: inv.customer_id ?? undefined,
+      customerName: inv.customer_name,
+      items: (inv.invoice_items ?? []).map((it: any) => ({
+        productId: it.product_id,
+        productName: it.product_name,
+        quantity: it.quantity,
+        unit: it.unit,
+        pricePerUnit: Number(it.price_per_unit),
+        costPerUnit: it.cost_per_unit != null ? Number(it.cost_per_unit) : undefined,
+        total: Number(it.total),
+      })),
+      subtotal: Number(inv.subtotal),
+      tax: Number(inv.tax),
+      total: Number(inv.total),
+      paid: Number(inv.paid),
+      due: Number(inv.due),
+      paymentMethod: inv.payment_method,
+      status: inv.status,
+      createdAt: new Date(inv.created_at).getTime(),
+      createdBy: inv.created_by,
+      customerPhone: inv.customer_phone ?? undefined,
+    })) as Invoice[];
+  }
   if (window.api) {
     return window.api.invoke('db:getInvoicesByStatus', status);
   }
@@ -240,6 +443,16 @@ export async function getInvoicesByStatus(status: 'paid' | 'partial' | 'unpaid')
 
 // Payment operations
 export async function addPayment(payment: Omit<Payment, 'id' | 'createdAt'>) {
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    const { error } = await supabase.from('payments').insert({
+      invoice_id: payment.invoiceId,
+      customer_id: payment.customerId ?? null,
+      amount: payment.amount,
+      method: payment.method,
+    });
+    if (error) throw error;
+    return 'ok';
+  }
   if (window.api) {
     return window.api.invoke('db:addPayment', payment);
   }

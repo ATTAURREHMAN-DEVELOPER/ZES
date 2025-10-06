@@ -17,7 +17,7 @@ const Login = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const user = login(username, password);
+    const user = await login(username, password);
     
     if (user) {
       toast({

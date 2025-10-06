@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 interface User {
   username: string;
   role: 'owner' | 'shopkeeper';
@@ -24,22 +26,29 @@ function saveUsers(users: Record<string, StoredUser>) {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
-export function login(username: string, password: string): User | null {
-  const user = Object.values(getUsers()).find(
-    u => u.username === username && u.password === password
-  );
-  
+export async function login(usernameOrEmail: string, password: string): Promise<User | null> {
+  // Try Supabase auth first (email/password)
+  const { data, error } = await supabase.auth.signInWithPassword({ email: usernameOrEmail, password });
+  if (!error && data.user) {
+    const { data: profile } = await supabase.from('profiles').select('role,name').eq('id', data.user.id).single();
+    if (!profile) return null;
+    const userData = { username: usernameOrEmail, role: profile.role, name: profile.name } as User;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+    return userData;
+  }
+  // Fallback to local demo users (optional)
+  const user = Object.values(getUsers()).find(u => u.username === usernameOrEmail && u.password === password);
   if (user) {
     const userData = { username: user.username, role: user.role, name: user.name };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
     return userData;
   }
-  
   return null;
 }
 
 export function logout() {
   localStorage.removeItem(STORAGE_KEY);
+  supabase.auth.signOut();
 }
 
 export function getCurrentUser(): User | null {
