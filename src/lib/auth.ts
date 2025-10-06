@@ -29,7 +29,15 @@ function saveUsers(users: Record<string, StoredUser>) {
 export async function login(usernameOrEmail: string, password: string): Promise<User | null> {
   // Treat the input as email for Supabase Auth
   const email = usernameOrEmail.trim();
+  
+  // Debug logging
+  console.log('Attempting login with:', { email, hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL });
+  
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  
+  // Debug logging
+  console.log('Supabase auth result:', { data: !!data, error, user: !!data?.user });
+  
   if (!error && data.user) {
     // Try to read profile for role/name; if missing, continue with sensible defaults
     const { data: profile } = await supabase
