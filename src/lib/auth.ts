@@ -27,38 +27,55 @@ function saveUsers(users: Record<string, StoredUser>) {
 }
 
 export async function login(usernameOrEmail: string, password: string): Promise<User | null> {
-  // Treat the input as email for Supabase Auth
   const email = usernameOrEmail.trim();
   
-  // Debug logging
-  console.log('Attempting login with:', { email, hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL });
+  // Check if Supabase is properly configured
+  const hasSupabaseConfig = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
   
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  
-  // Debug logging
-  console.log('Supabase auth result:', { data: !!data, error, user: !!data?.user });
-  
-  if (!error && data.user) {
-    // Try to read profile for role/name; if missing, continue with sensible defaults
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role,name')
-      .eq('id', data.user.id)
-      .maybeSingle();
+  if (hasSupabaseConfig) {
+    try {
+      console.log('Using Supabase auth with URL:', import.meta.env.VITE_SUPABASE_URL);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      console.log('Supabase auth response:', { data: !!data, error, user: !!data?.user });
+      
+      if (error) {
+        console.error('Supabase auth error:', error.message);
+        throw new Error(error.message);
+      }
+      
+      if (data.user) {
+        // Try to read profile for role/name; if missing, continue with sensible defaults
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role,name')
+          .eq('id', data.user.id)
+          .maybeSingle();
 
-    const role = (profile?.role as User['role']) ?? 'shopkeeper';
-    const name = profile?.name ?? email;
-    const userData = { username: email, role, name } as User;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-    return userData;
+        console.log('Profile lookup:', { profile, profileError });
+
+        const role = (profile?.role as User['role']) ?? 'shopkeeper';
+        const name = profile?.name ?? email;
+        const userData = { username: email, role, name } as User;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+        return userData;
+      }
+    } catch (error) {
+      console.error('Supabase auth error:', error);
+      throw error; // Re-throw to prevent fallback
+    }
+  } else {
+    console.log('Supabase not configured, using fallback');
   }
-  // Fallback to local demo users (optional)
+  
+  // Fallback to local demo users for immediate production use
   const user = Object.values(getUsers()).find(u => u.username === usernameOrEmail && u.password === password);
   if (user) {
     const userData = { username: user.username, role: user.role, name: user.name };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
     return userData;
   }
+  
   return null;
 }
 
