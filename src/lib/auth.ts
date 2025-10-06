@@ -27,12 +27,20 @@ function saveUsers(users: Record<string, StoredUser>) {
 }
 
 export async function login(usernameOrEmail: string, password: string): Promise<User | null> {
-  // Try Supabase auth first (email/password)
-  const { data, error } = await supabase.auth.signInWithPassword({ email: usernameOrEmail, password });
+  // Treat the input as email for Supabase Auth
+  const email = usernameOrEmail.trim();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (!error && data.user) {
-    const { data: profile } = await supabase.from('profiles').select('role,name').eq('id', data.user.id).single();
-    if (!profile) return null;
-    const userData = { username: usernameOrEmail, role: profile.role, name: profile.name } as User;
+    // Try to read profile for role/name; if missing, continue with sensible defaults
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role,name')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    const role = (profile?.role as User['role']) ?? 'shopkeeper';
+    const name = profile?.name ?? email;
+    const userData = { username: email, role, name } as User;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
     return userData;
   }
