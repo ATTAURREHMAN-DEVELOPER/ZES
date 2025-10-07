@@ -29,8 +29,8 @@ function saveUsers(users: Record<string, StoredUser>) {
 export async function login(usernameOrEmail: string, password: string): Promise<User | null> {
   const email = usernameOrEmail.trim();
   
-  // Check if Supabase is properly configured
-  const hasSupabaseConfig = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // Always try Supabase first (hardcoded credentials)
+  const hasSupabaseConfig = true; // Always true now since we're using hardcoded values
   
   if (hasSupabaseConfig) {
     try {
