@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { login } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Zap } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -31,6 +32,13 @@ const Login = () => {
         title: 'Login Failed',
         description: 'Invalid username or password',
       });
+    }
+
+    // Additionally, if Supabase session exists, redirect
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      navigate('/dashboard');
+      return;
     }
   };
 

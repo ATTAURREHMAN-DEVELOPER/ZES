@@ -5,8 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import { getCurrentUser } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PublicRoute from "@/components/PublicRoute";
 import Products from "@/pages/Products";
 import Customers from "@/pages/Customers";
 import Billing from "@/pages/Billing";
@@ -22,7 +25,15 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    // no-op; seeding removed for production-like local usage
+    // If already authenticated, keep session across reloads
+    const user = getCurrentUser();
+    if (!user) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          // Optional: could fetch profile here
+        }
+      });
+    }
   }, []);
 
   return (
@@ -33,7 +44,14 @@ const App = () => {
         <BrowserRouter>
           <ErrorBoundary>
           <Routes>
-            <Route path="/" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={
