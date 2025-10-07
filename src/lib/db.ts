@@ -444,6 +444,7 @@ export async function getInvoicesByStatus(status: 'paid' | 'partial' | 'unpaid')
 // Payment operations
 export async function addPayment(payment: Omit<Payment, 'id' | 'createdAt'>) {
   if (import.meta.env.VITE_SUPABASE_URL) {
+    // 1) Insert payment
     const { error } = await supabase.from('payments').insert({
       invoice_id: payment.invoiceId,
       customer_id: payment.customerId ?? null,
@@ -451,6 +452,39 @@ export async function addPayment(payment: Omit<Payment, 'id' | 'createdAt'>) {
       method: payment.method,
     });
     if (error) throw error;
+    // 2) Read invoice
+    const { data: invoice, error: invErr } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', payment.invoiceId)
+      .single();
+    if (invErr) throw invErr;
+    if (!invoice) return 'ok';
+    // 3) Compute new totals
+    const newPaid = Number(invoice.paid || 0) + payment.amount;
+    const newDue = Number(invoice.total || 0) - newPaid;
+    const newStatus = newDue <= 0 ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid';
+    // 4) Update invoice
+    const { error: upErr } = await supabase
+      .from('invoices')
+      .update({ paid: newPaid, due: newDue, status: newStatus })
+      .eq('id', payment.invoiceId);
+    if (upErr) throw upErr;
+    // 5) Update customer due if applicable
+    if (invoice.customer_id) {
+      const { data: cust, error: custErr } = await supabase
+        .from('customers')
+        .select('total_due')
+        .eq('id', invoice.customer_id)
+        .single();
+      if (!custErr && cust) {
+        const { error: custUpErr } = await supabase
+          .from('customers')
+          .update({ total_due: Number(cust.total_due || 0) - payment.amount })
+          .eq('id', invoice.customer_id);
+        if (custUpErr) throw custUpErr;
+      }
+    }
     return 'ok';
   }
   if (window.api) {
