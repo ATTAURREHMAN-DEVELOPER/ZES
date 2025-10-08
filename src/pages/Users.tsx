@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import PageHeader from '@/components/PageHeader';
+import AppHeader from '@/components/AppHeader';
 import { useNavigate } from 'react-router-dom';
 import { addShopkeeper, changePassword, listUsers, getCurrentUser, updateUsername } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
@@ -69,8 +70,10 @@ const Users = () => {
   }, [users, query]);
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <PageHeader title="User Management" subtitle="Add shopkeepers and update your password" onBack={() => navigate('/dashboard')} />
+    <div className="min-h-screen bg-background">
+      <AppHeader title="ZES Electric Store" subtitle="User Management" />
+      <main className="container mx-auto px-4 py-8 space-y-6">
+        <PageHeader title="User Management" subtitle="Add shopkeepers and update your password" onBack={() => navigate('/dashboard')} />
 
       <Card>
         <CardHeader>
@@ -154,6 +157,7 @@ const Users = () => {
           </div>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 };

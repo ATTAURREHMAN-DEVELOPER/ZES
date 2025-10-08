@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/PageHeader';
+import AppHeader from '@/components/AppHeader';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ const Billing = () => {
   const [cart, setCart] = useState<Array<{ productId: string; quantity: number }>>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'easypay' | 'jazzcash' | 'bank'>('cash');
   const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [paidAmountString, setPaidAmountString] = useState<string>('0');
   const [customerPhone, setCustomerPhone] = useState<string>('');
 
   useEffect(() => {
@@ -76,6 +78,21 @@ const Billing = () => {
     setCart((prev) => prev.filter((x) => x.productId !== productId));
   };
 
+  const updatePaidAmount = (value: string) => {
+    // Remove any non-numeric characters except decimal point
+    const cleanedValue = value.replace(/[^\d.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = cleanedValue.split('.');
+    const formattedValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleanedValue;
+    
+    setPaidAmountString(formattedValue);
+    
+    // Update the numeric value
+    const numericValue = parseFloat(formattedValue) || 0;
+    setPaidAmount(numericValue);
+  };
+
   const onCreateInvoice = async (saveOnly: boolean) => {
     if (items.length === 0) {
       toast({ variant: 'destructive', title: 'Cart is empty' });
@@ -114,14 +131,17 @@ const Billing = () => {
       // reset
       setCart([]);
       setPaidAmount(0);
+      setPaidAmountString('0');
     } catch (err) {
       toast({ variant: 'destructive', title: 'Error creating invoice', description: (err as Error).message });
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <PageHeader title="Billing" subtitle="Create invoices and accept payments" onBack={() => navigate('/dashboard')} />
+    <div className="min-h-screen bg-background">
+      <AppHeader title="ZES Electric Store" subtitle="Billing" />
+      <main className="container mx-auto px-4 py-8 space-y-6">
+        <PageHeader title="Billing" subtitle="Create invoices and accept payments" onBack={() => navigate('/dashboard')} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -147,7 +167,13 @@ const Billing = () => {
                       <td className="py-2 pr-4">{it.unit}</td>
                       <td className="py-2 pr-4">Rs {it.pricePerUnit}</td>
                       <td className="py-2 pr-4">
-                        <Input type="number" className="w-24" value={cart.find((c) => c.productId === it.productId)?.quantity ?? 1} onChange={(e) => updateQty(it.productId, Number(e.target.value))} />
+                        <Input 
+                          type="number" 
+                          className="w-24" 
+                          value={cart.find((c) => c.productId === it.productId)?.quantity ?? 1} 
+                          onChange={(e) => updateQty(it.productId, Number(e.target.value))}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </td>
                       <td className="py-2 pr-4">Rs {it.total}</td>
                       <td className="py-2">
@@ -193,10 +219,36 @@ const Billing = () => {
                   <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
                 </div>
               )}
-              <div>
-                <Label>Paid Amount</Label>
-                <Input type="number" value={paidAmount} onChange={(e) => setPaidAmount(Number(e.target.value))} />
-              </div>
+               <div>
+                 <Label>Paid Amount (Rs)</Label>
+                 <Input 
+                   type="text" 
+                   value={paidAmountString} 
+                   onChange={(e) => updatePaidAmount(e.target.value)}
+                   onFocus={(e) => e.target.select()}
+                   placeholder="0.00"
+                 />
+                 <div className="flex gap-2 mt-2">
+                   <Button 
+                     type="button" 
+                     variant="outline" 
+                     size="sm" 
+                     onClick={() => updatePaidAmount(total.toString())}
+                     className="flex-1"
+                   >
+                     Full Amount
+                   </Button>
+                   <Button 
+                     type="button" 
+                     variant="outline" 
+                     size="sm" 
+                     onClick={() => updatePaidAmount('0')}
+                     className="flex-1"
+                   >
+                     Clear
+                   </Button>
+                 </div>
+               </div>
               <div>
                 <Label>Payment Method</Label>
                 <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
@@ -261,6 +313,7 @@ const Billing = () => {
           </div>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 };

@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, logout } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import { getAllProducts, getAllInvoices, getAllCustomers, getInvoicesByStatus } from '@/lib/db';
-import { Package, Receipt, Users, AlertCircle, LogOut, Zap } from 'lucide-react';
+import { Package, Receipt, Users, AlertCircle, Zap } from 'lucide-react';
 import type { Product, Invoice, Customer } from '@/lib/db';
+import AppHeader from '@/components/AppHeader';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -36,10 +37,6 @@ const Dashboard = () => {
     setPendingInvoices(pendingData);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.paid, 0);
   // Sum due from invoices (covers walk-in customers too)
@@ -57,30 +54,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-sidebar text-sidebar-foreground shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-              <Zap className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">ZES Electric Store</h1>
-              <p className="text-sm text-sidebar-foreground/70">Dashboard</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium">{user?.name}</p>
-              <p className="text-xs text-sidebar-foreground/70 capitalize">{user?.role}</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      <AppHeader title="ZES Electric Store" subtitle="Dashboard" />
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Grid */}

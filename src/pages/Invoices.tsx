@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { savePDF, printPDF } from '@/lib/pdf';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
+import AppHeader from '@/components/AppHeader';
 import { Search } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -38,8 +39,10 @@ const Invoices = () => {
   }, [invoices, query]);
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <PageHeader title="Invoices" subtitle="View and reprint previous invoices" onBack={() => navigate('/dashboard')} />
+    <div className="min-h-screen bg-background">
+      <AppHeader title="ZES Electric Store" subtitle="All Invoices" />
+      <main className="container mx-auto px-4 py-8 space-y-6">
+        <PageHeader title="Invoices" subtitle="View and reprint previous invoices" onBack={() => navigate('/dashboard')} />
 
       <Card>
         <CardHeader>
@@ -101,6 +104,7 @@ const Invoices = () => {
           </div>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 };

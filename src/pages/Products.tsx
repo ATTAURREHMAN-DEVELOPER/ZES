@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
+import AppHeader from '@/components/AppHeader';
 import { Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,8 +68,10 @@ const Products = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <PageHeader title="Products" subtitle="Manage your inventory" onBack={() => navigate('/dashboard')} />
+    <div className="min-h-screen bg-background">
+      <AppHeader title="ZES Electric Store" subtitle="Products" />
+      <main className="container mx-auto px-4 py-8 space-y-6">
+        <PageHeader title="Products" subtitle="Manage your inventory" onBack={() => navigate('/dashboard')} />
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>{editingId ? 'Edit Product' : 'Add Product'}</CardTitle>
@@ -175,6 +178,7 @@ const Products = () => {
           </div>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 };

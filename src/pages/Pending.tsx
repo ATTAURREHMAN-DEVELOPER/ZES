@@ -1,4 +1,5 @@
 import PageHeader from '@/components/PageHeader';
+import AppHeader from '@/components/AppHeader';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +56,9 @@ const Pending = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-background">
+      <AppHeader title="ZES Electric Store" subtitle="Pending Payments" />
+      <main className="container mx-auto px-4 py-8 space-y-6">
       <PageHeader title="Pending Payments" subtitle="Record payments for partially paid invoices" onBack={() => navigate('/dashboard')} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -138,6 +141,7 @@ const Pending = () => {
           </CardContent>
         </Card>
       </div>
+      </main>
     </div>
   );
 };

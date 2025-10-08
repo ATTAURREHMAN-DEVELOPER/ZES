@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import PageHeader from '@/components/PageHeader';
+import AppHeader from '@/components/AppHeader';
 import { useNavigate } from 'react-router-dom';
 import { getAllInvoices } from '@/lib/db';
 import type { Invoice } from '@/lib/db';
@@ -52,8 +53,10 @@ const Revenue = () => {
   }, [filtered]);
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <PageHeader title="Revenue & Profit" subtitle="Track income vs cost" onBack={() => navigate('/dashboard')} />
+    <div className="min-h-screen bg-background">
+      <AppHeader title="ZES Electric Store" subtitle="Revenue" />
+      <main className="container mx-auto px-4 py-8 space-y-6">
+        <PageHeader title="Revenue & Profit" subtitle="Track income vs cost" onBack={() => navigate('/dashboard')} />
 
       <Card>
         <CardHeader>
@@ -103,6 +106,7 @@ const Revenue = () => {
           <CardContent><div className="text-2xl font-bold">Rs {totals.received.toFixed(2)}</div></CardContent>
         </Card>
       </div>
+      </main>
     </div>
   );
 };

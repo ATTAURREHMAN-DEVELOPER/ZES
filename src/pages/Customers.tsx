@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
+import AppHeader from '@/components/AppHeader';
 import { Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,8 +54,10 @@ const Customers = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <PageHeader title="Customers" subtitle="Manage customer records" onBack={() => navigate('/dashboard')} />
+    <div className="min-h-screen bg-background">
+      <AppHeader title="ZES Electric Store" subtitle="Customers" />
+      <main className="container mx-auto px-4 py-8 space-y-6">
+        <PageHeader title="Customers" subtitle="Manage customer records" onBack={() => navigate('/dashboard')} />
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>{editingId ? 'Edit Customer' : 'Add Customer'}</CardTitle>
@@ -136,6 +139,7 @@ const Customers = () => {
           </div>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 };
