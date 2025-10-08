@@ -62,9 +62,35 @@ const Products = () => {
   };
 
   const onStockChange = async (p: Product, delta: number) => {
-    const next = Math.max(0, (p.stock || 0) + delta);
-    await updateProduct(p.id, { stock: next });
-    setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, stock: next } : x)));
+    const currentStock = p.stock || 0;
+    const next = currentStock + delta;
+    
+    // Prevent negative stock
+    if (next < 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot reduce stock below zero',
+        description: `Stock for ${p.name} cannot go below 0`
+      });
+      return;
+    }
+    
+    try {
+      await updateProduct(p.id, { stock: next });
+      setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, stock: next } : x)));
+      
+      // Show success message for stock updates
+      toast({
+        title: 'Stock updated',
+        description: `${p.name} stock changed from ${currentStock} to ${next}`
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update stock',
+        description: (err as Error).message
+      });
+    }
   };
 
   return (
@@ -102,7 +128,19 @@ const Products = () => {
             )}
             <div>
               <Label htmlFor="stock">Stock</Label>
-              <Input id="stock" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} required />
+              <Input 
+                id="stock" 
+                type="number" 
+                min="0"
+                value={form.stock} 
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (value >= 0) {
+                    setForm({ ...form, stock: value });
+                  }
+                }} 
+                required 
+              />
             </div>
             <div>
               <Label htmlFor="watts">Watts (optional)</Label>

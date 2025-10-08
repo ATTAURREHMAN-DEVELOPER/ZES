@@ -117,6 +117,11 @@ export async function getDB() {
 
 // Product operations
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt'>) {
+  // Validate stock
+  if (product.stock < 0) {
+    throw new Error('Stock cannot be negative');
+  }
+
   // Supabase branch
   if (import.meta.env.VITE_SUPABASE_URL) {
     const { data, error } = await supabase
@@ -145,6 +150,11 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt'>) {
 }
 
 export async function updateProduct(id: string, updates: Partial<Product>) {
+  // Validate stock if being updated
+  if (updates.stock !== undefined && updates.stock < 0) {
+    throw new Error('Stock cannot be negative');
+  }
+
   if (import.meta.env.VITE_SUPABASE_URL) {
     const { error } = await supabase
       .from('products')

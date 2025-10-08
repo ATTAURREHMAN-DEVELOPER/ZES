@@ -63,15 +63,48 @@ const Billing = () => {
   const due = Math.max(0, total - paidAmount);
 
   const addToCart = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
     setCart((prev) => {
       const ex = prev.find((x) => x.productId === productId);
-      if (ex) return prev.map((x) => (x.productId === productId ? { ...x, quantity: x.quantity + 1 } : x));
+      const currentQty = ex ? ex.quantity : 0;
+      const newQty = currentQty + 1;
+      
+      // Check if adding this item would exceed available stock
+      if (newQty > product.stock) {
+        toast({
+          variant: 'destructive',
+          title: 'Insufficient Stock',
+          description: `Only ${product.stock} ${product.unit}(s) available for ${product.name}`
+        });
+        return prev; // Don't update cart
+      }
+      
+      if (ex) {
+        return prev.map((x) => (x.productId === productId ? { ...x, quantity: newQty } : x));
+      }
       return [...prev, { productId, quantity: 1 }];
     });
   };
 
   const updateQty = (productId: string, qty: number) => {
-    setCart((prev) => prev.map((x) => (x.productId === productId ? { ...x, quantity: Math.max(1, qty) } : x)));
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    setCart((prev) => {
+      const validQty = Math.max(1, Math.min(qty, product.stock));
+      
+      if (qty > product.stock) {
+        toast({
+          variant: 'destructive',
+          title: 'Insufficient Stock',
+          description: `Only ${product.stock} ${product.unit}(s) available for ${product.name}`
+        });
+      }
+      
+      return prev.map((x) => (x.productId === productId ? { ...x, quantity: validQty } : x));
+    });
   };
 
   const removeFromCart = (productId: string) => {
@@ -97,6 +130,23 @@ const Billing = () => {
     if (items.length === 0) {
       toast({ variant: 'destructive', title: 'Cart is empty' });
       return;
+    }
+
+    // Validate stock availability before creating invoice
+    for (const item of items) {
+      const product = products.find(p => p.id === item.productId);
+      if (!product) {
+        toast({ variant: 'destructive', title: 'Product not found', description: `${item.productName} is no longer available` });
+        return;
+      }
+      if (product.stock < item.quantity) {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Insufficient Stock', 
+          description: `Only ${product.stock} ${product.unit}(s) available for ${product.name}, but ${item.quantity} requested` 
+        });
+        return;
+      }
     }
 
     const invoiceNum = `INV-${Date.now().toString().slice(-6)}`;
@@ -132,6 +182,9 @@ const Billing = () => {
       setCart([]);
       setPaidAmount(0);
       setPaidAmountString('0');
+      // Refresh products to update stock
+      const updatedProducts = await getAllProducts();
+      setProducts(updatedProducts);
     } catch (err) {
       toast({ variant: 'destructive', title: 'Error creating invoice', description: (err as Error).message });
     }
@@ -302,14 +355,38 @@ const Billing = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {products.map((p) => (
-              <div key={p.id} className="border rounded-md p-3">
-                <div className="font-medium">{p.name}</div>
-                <div className="text-xs text-muted-foreground">{p.category} • {p.unit}{p.watts ? ` • ${p.watts}` : ''}</div>
-                <div className="mt-1 text-sm">Rs {p.pricePerUnit} • Stock {p.stock}</div>
-                <Button className="mt-2" size="sm" onClick={() => addToCart(p.id)}>Add</Button>
-              </div>
-            ))}
+            {products.map((p) => {
+              const isOutOfStock = p.stock <= 0;
+              const cartItem = cart.find(c => c.productId === p.id);
+              const isInCart = !!cartItem;
+              const availableStock = p.stock - (cartItem?.quantity || 0);
+              const canAddMore = availableStock > 0;
+              
+              return (
+                <div key={p.id} className={`border rounded-md p-3 ${isOutOfStock ? 'opacity-60 bg-muted/20' : ''}`}>
+                  <div className="font-medium">{p.name}</div>
+                  <div className="text-xs text-muted-foreground">{p.category} • {p.unit}{p.watts ? ` • ${p.watts}` : ''}</div>
+                  <div className="mt-1 text-sm">
+                    Rs {p.pricePerUnit} • 
+                    <span className={isOutOfStock ? 'text-red-600 font-semibold' : p.stock < 10 ? 'text-orange-600 font-semibold' : 'text-green-600'}>
+                      {' '}Stock {p.stock}
+                    </span>
+                    {isInCart && (
+                      <span className="text-blue-600 ml-2">(In cart: {cartItem.quantity})</span>
+                    )}
+                  </div>
+                  <Button 
+                    className="mt-2" 
+                    size="sm" 
+                    onClick={() => addToCart(p.id)}
+                    disabled={!canAddMore}
+                    variant={isOutOfStock ? "secondary" : "default"}
+                  >
+                    {isOutOfStock ? 'Out of Stock' : canAddMore ? 'Add' : 'Max Added'}
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
